@@ -7,7 +7,7 @@ namespace DiscordBot.Data
 {
     public class BotDBContext : DbContext
     {
-        public BotDBContext(DbContextOptions<SigilDBContext> options)
+        public BotDBContext(DbContextOptions<BotDBContext> options)
             : base(options)
         {
         }
