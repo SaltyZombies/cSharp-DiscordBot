@@ -1,8 +1,11 @@
-﻿using Discord;
+﻿using System.Runtime.InteropServices;
+using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Commands;
 using DiscordBot.Data;
 using DiscordBot.Events;
+using DiscordBot.Services;
 
 
 namespace DiscordBot.Services
@@ -12,7 +15,8 @@ namespace DiscordBot.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IConfiguration _configuration;
         private static DiscordSocketClient _client;
-        private readonly ILogger<DiscordBotService> _logger;
+        public readonly ILogger<DiscordBotService> _logger;
+        private InteractionService _commands;
 
 
         public DiscordBotService(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<DiscordBotService> logger)
@@ -26,17 +30,46 @@ namespace DiscordBot.Services
             _logger = logger;
         }
 
+        private ServiceProvider ConfigureServices()
+        {
+            return new ServiceCollection()
+                .AddSingleton(_configuration)
+                .AddSingleton(_client)
+                .AddSingleton(x => new InteractionService(_client))
+                .AddSingleton<CommandHandler>()
+                .BuildServiceProvider();
+        }
+
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            using (var scope = _serviceProvider.CreateScope())
+            try
             {
-                var context = scope.ServiceProvider.GetRequiredService<BotDBContext>();
+                DiscordSocketConfig socketConfig = new DiscordSocketConfig
+                {
+                    GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers | GatewayIntents.GuildBans
+                };
+
+                _logger.LogInformation("Starting Discord Bot");
+
+                _client = new DiscordSocketClient(socketConfig);
+
+                // Attach the log event
                 _client.Log += LogAsync;
-                _client.Ready += ReadyAsync;
-                _client.SlashCommandExecuted += SlashCommandHandler.HandleAsync;
-                _client.UserJoined += GuildMemberEvents.UserJoinedAsync;
-                await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("BOT_TOKEN"));
-                await _client.StartAsync();
+                using (var services = ConfigureServices())
+                {
+                    _commands = services.GetRequiredService<InteractionService>();
+                    _commands.Log += LogAsync;
+                    _client.Ready += ReadyAsync;
+                    _client.UserJoined += GuildMemberEvents.UserJoinedAsync;
+
+                    await _client.LoginAsync(TokenType.Bot, _configuration.GetValue<string>("BOT_TOKEN"));
+                    await _client.StartAsync();
+                    await services.GetRequiredService<CommandHandler>().InitializeAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, "An error occurred while starting the Discord Bot.");
             }
         }
 
@@ -78,13 +111,16 @@ namespace DiscordBot.Services
 
         private async Task ReadyAsync()
         {
-            var guild = _client.GetGuild(_configuration.GetValue<ulong>("DISCORD_SERVER"));
-            var commands = new SlashCommandBuilder()
-                .WithName("ping")
-                .WithDescription("Replies with pong!");
 
-            await guild.CreateApplicationCommandAsync(commands.Build());
+            var testServer = Convert.ToUInt64(Environment.GetEnvironmentVariable("DISCORD_SERVER"));
+
+            if (testServer != 0)
+                {
+                    _logger.LogInformation($"In Debug Mode, Adding commands to {testServer}");
+                    await _commands.RegisterCommandsToGuildAsync(testServer);
+                }
+                else
+                    await _commands.RegisterCommandsGloballyAsync(true);
         }
-
     }
 }
