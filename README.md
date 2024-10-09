@@ -16,7 +16,7 @@ The bot requires the following environment variables to be set in a `.env` file:
 MONGODB_URI - MongoURI
 MONGODB_DB - MongoDBName
 BOT_TOKEN - Discord Bot Token
-DISCORD_SERVER - ServerID of Discord
+DISCORD_SERVER - ServerID of Discord  This is only needed for Development
 ```
 
 ### Appsettings.json Configuration
