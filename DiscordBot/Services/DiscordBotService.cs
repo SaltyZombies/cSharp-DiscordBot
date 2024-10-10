@@ -128,7 +128,7 @@ namespace DiscordBot.Services
 
             _client.InteractionCreated += async interaction =>
             {
-                var ctx = new SocketInteractionContext(_client, interaction);
+                var ctx = new InteractionContext(_client, interaction);
                 await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
             };
         }
