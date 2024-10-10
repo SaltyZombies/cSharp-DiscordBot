@@ -11,12 +11,14 @@ namespace DiscordBot.Services
         private readonly DiscordSocketClient _client;
         private readonly InteractionService _commands;
         private readonly IServiceProvider _services;
+        private static ILogger<DiscordBotService> _logger;
 
         public CommandHandler(DiscordSocketClient client, InteractionService commands, IServiceProvider services)
         {
             _client = client;
             _commands = commands;
             _services = services;
+            _logger = DiscordBotService.GetLogger();
         }
 
         public async Task InitializeAsync()
@@ -27,8 +29,7 @@ namespace DiscordBot.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-//                _logger.LogCritical(ex, "An error occurred while adding modules to the command service.");
+                _logger.LogCritical(ex, "An error occurred while adding modules to the command service.");
             }
 
             try
@@ -37,8 +38,7 @@ namespace DiscordBot.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-//                __logger.LogCritical(ex, "An error occurred while adding the InteractionCreated event handler.");
+                _logger.LogCritical(ex, "An error occurred while adding the InteractionCreated event handler.");
             }
 
             try
@@ -48,8 +48,7 @@ namespace DiscordBot.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-//                __logger.LogCritical(ex, "An error occurred while adding the command execution event handlers.");
+                _logger.LogCritical(ex, "An error occurred while adding the command execution event handlers.");
             }
         }
 
@@ -58,8 +57,7 @@ namespace DiscordBot.Services
             if (!arg3.IsSuccess)
             {
 
-                Console.WriteLine($"Component command failed: {(arg1 != null ? arg1.Name : "BlankName")} with error: {arg3.ErrorReason ?? "BlankReason"}");
-//                __logger.LogWarning($"Component command failed: {(arg1 != null ? arg1.Name : "BlankName")} with error: {arg3.ErrorReason ?? "BlankReason"}");
+                _logger.LogWarning($"Component command failed: {(arg1 != null ? arg1.Name : "BlankName")} with error: {arg3.ErrorReason ?? "BlankReason"}");
 
                 switch (arg3.Error)
                 {
@@ -89,8 +87,7 @@ namespace DiscordBot.Services
         {
             if (!arg3.IsSuccess)
             {
-                Console.WriteLine($"Slash command failed: {(arg1 != null ? arg1.Name : "BlankName")} with error: {arg3.ErrorReason ?? "BlankReason"}");
-//                __logger.LogWarning($"Slash command failed: {(arg1 != null ? arg1.Name : "BlankName")} with error: {arg3.ErrorReason ?? "BlankReason"}");
+                _logger.LogWarning($"Slash command failed: {(arg1 != null ? arg1.Name : "BlankName")} with error: {arg3.ErrorReason ?? "BlankReason"}");
 
                 switch (arg3.Error)
                 {
@@ -134,8 +131,7 @@ namespace DiscordBot.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
-//                __logger.LogError(ex, "An error occurred while executing an interaction command.");
+                _logger.LogError(ex, "An error occurred while executing an interaction command.");
                 if (arg.Type == InteractionType.ApplicationCommand)
                 {
                     await arg.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());

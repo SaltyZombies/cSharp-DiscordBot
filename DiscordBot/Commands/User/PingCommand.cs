@@ -6,9 +6,10 @@ namespace DiscordBot.Commands.User
 {
     public partial class UserCommands : InteractionModuleBase<InteractionContext>
     {
-        [SlashCommand("ping", "Ping")]
-        public async Task ping()
+        [SlashCommand("ping", "Ping the system")]
+        public async Task Ping()
         {
+            Console.WriteLine("Pong!");
             await RespondAsync("Pong!");
         }
     }

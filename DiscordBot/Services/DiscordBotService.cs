@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Reflection;
+using System.Runtime.InteropServices;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -10,23 +11,16 @@ using DiscordBot.Services;
 
 namespace DiscordBot.Services
 {
-    public class DiscordBotService : IHostedService
+    public class DiscordBotService : BackgroundService
     {
-        private readonly IServiceProvider _serviceProvider;
         private readonly IConfiguration _configuration;
-        private static DiscordSocketClient _client;
-        public readonly ILogger<DiscordBotService> _logger;
-        private InteractionService _commands;
+        private static DiscordSocketClient _client = null!;
+        private static ILogger<DiscordBotService> _logger;
+        private InteractionService _commands = null!;
 
-
-        public DiscordBotService(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<DiscordBotService> logger)
+        public DiscordBotService(IConfiguration configuration, ILogger<DiscordBotService> logger)
         {
-            _serviceProvider = serviceProvider;
             _configuration = configuration;
-            _client = new DiscordSocketClient(new DiscordSocketConfig
-            {
-                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers
-            });
             _logger = logger;
         }
 
@@ -40,7 +34,12 @@ namespace DiscordBot.Services
                 .BuildServiceProvider();
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public static ILogger<DiscordBotService> GetLogger()
+        {
+            return _logger;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -66,6 +65,8 @@ namespace DiscordBot.Services
                     await _client.StartAsync();
                     await services.GetRequiredService<CommandHandler>().InitializeAsync();
                 }
+
+                await Task.Delay(Timeout.Infinite, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -111,7 +112,6 @@ namespace DiscordBot.Services
 
         private async Task ReadyAsync()
         {
-
             var testServer = Convert.ToUInt64(Environment.GetEnvironmentVariable("DISCORD_SERVER"));
 
             if (testServer != 0)
@@ -121,6 +121,16 @@ namespace DiscordBot.Services
                 }
                 else
                     await _commands.RegisterCommandsGloballyAsync(true);
+
+            var _serviceProvider = ConfigureServices();
+            var _interactionService = new InteractionService(_client);
+            await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
+
+            _client.InteractionCreated += async interaction =>
+            {
+                var ctx = new SocketInteractionContext(_client, interaction);
+                await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
+            };
         }
     }
 }
