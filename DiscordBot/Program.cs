@@ -1,7 +1,6 @@
 using DotNetEnv;
 using DiscordBot.Services;
 using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver;
 using DiscordBot.Data;
 
 public class Program
@@ -21,11 +20,13 @@ public class Program
              })
             .ConfigureServices((hostContext, services) =>
             {
-                services.AddDbContext<BotDBContext>(options =>
-                    options.UseMongoDB(
-                        new MongoClient(Environment.GetEnvironmentVariable("MONGODB_URI") ?? hostContext.Configuration.GetSection("MongoSettings").GetValue<string>("ConnectionString")),
-                        Environment.GetEnvironmentVariable("MONGODB_DB") ?? hostContext.Configuration.GetSection("MongoSettings").GetValue<string>("DatabaseName") ?? throw new InvalidOperationException("DatabaseName is not configured.")
-                    ));
+                services.AddDbContext<BotDbContext>(options =>
+                {
+                    options.UseMySql(
+                        Environment.GetEnvironmentVariable("MYSQL_CONNECTION_STRING"),
+                        new MySqlServerVersion(new Version(8, 0, 32)) // Adjust MySQL version accordingly
+                    );
+                });
                 services.AddSingleton<DiscordBotService>();
                 services.AddHostedService(provider => provider.GetRequiredService<DiscordBotService>());
             });

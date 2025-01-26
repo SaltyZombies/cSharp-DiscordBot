@@ -45,7 +45,7 @@ namespace DiscordBot.Services
             {
                 DiscordSocketConfig socketConfig = new DiscordSocketConfig
                 {
-                    GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers | GatewayIntents.GuildBans
+                    GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers 
                 };
 
                 _logger.LogInformation("Starting Discord Bot");
@@ -122,14 +122,14 @@ namespace DiscordBot.Services
                 else
                     await _commands.RegisterCommandsGloballyAsync(true);
 
-            var _serviceProvider = ConfigureServices();
-            var _interactionService = new InteractionService(_client);
-            await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
+            var serviceProvider = ConfigureServices();
+            var interactionService = new InteractionService(_client);
+            await interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), serviceProvider);
 
             _client.InteractionCreated += async interaction =>
             {
                 var ctx = new InteractionContext(_client, interaction);
-                await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
+                await interactionService.ExecuteCommandAsync(ctx, serviceProvider);
             };
         }
     }

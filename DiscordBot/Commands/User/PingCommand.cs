@@ -1,6 +1,7 @@
+using System.Diagnostics;
 using Discord;
 using Discord.Interactions;
-using ZstdSharp.Unsafe;
+
 
 
 namespace DiscordBot.Commands.User
@@ -11,7 +12,19 @@ namespace DiscordBot.Commands.User
         public async Task Ping()
         {
             _logger.LogInformation($"{Context.User.Username} has attempted to ping us from {Context.Guild.Id}");
-            await RespondAsync("Pong!");
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            
+            var httpPing = 0;
+            using (var httpClient = new HttpClient())
+            {
+                var response = await httpClient.GetAsync("https://discord.com");
+                stopwatch.Stop();
+                httpPing = (int)stopwatch.ElapsedMilliseconds;
+                stopwatch.Reset();
+            }
+            
+            await RespondAsync($"HTTP Ping: {httpPing}ms");
         }
     }
 }
